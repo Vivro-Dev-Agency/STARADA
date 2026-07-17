@@ -1,6 +1,10 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 import { SpecCounter } from "@/components/fleet/spec-counter";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Vehicle } from "@/lib/fleet-data";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +16,8 @@ type VehicleCardProps = {
 };
 
 export function VehicleCard({ vehicle, active = false, className, showCounters = true }: VehicleCardProps) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   return (
     <article
       className={cn(
@@ -21,12 +27,19 @@ export function VehicleCard({ vehicle, active = false, className, showCounters =
       )}
     >
       <div className="relative aspect-16/10 overflow-hidden">
+        {!imageLoaded && <Skeleton className="absolute inset-0 size-full rounded-none" aria-hidden />}
         <Image
           src={vehicle.image}
           alt={vehicle.imageAlt}
           fill
-          className={cn("object-cover transition-transform duration-700", active && "scale-105")}
+          className={cn(
+            "object-cover opacity-0 transition-[opacity,transform] duration-700",
+            imageLoaded && "opacity-100",
+            active && "scale-105",
+          )}
           sizes="(max-width: 768px) 90vw, 50vw"
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageLoaded(true)}
         />
         <div className="absolute inset-0 bg-linear-to-t from-obsidian via-transparent to-transparent" />
         <span className="absolute top-4 left-4 border border-gold/40 bg-obsidian/70 px-3 py-1 text-[10px] tracking-[0.2em] text-gold uppercase backdrop-blur-sm">

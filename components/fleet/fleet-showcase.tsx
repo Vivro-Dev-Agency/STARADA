@@ -21,53 +21,69 @@ export function FleetShowcase({
   subtitle = "Six extraordinary machines. One uncompromising standard.",
 }: FleetShowcaseProps) {
   const containerRef = useRef<HTMLElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<gsap.core.Tween | null>(null);
-  const animatingRef = useRef(false);
+  const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [maxIndex, setMaxIndex] = useState(fleet.length - 1);
 
-  const getCenteredOffset = useCallback((index: number) => {
+  const getRawX = useCallback((index: number) => {
     const track = trackRef.current;
     if (!track) return 0;
 
     const card = track.children[index] as HTMLElement | undefined;
-    if (!card) return 0;
+    const firstCard = track.children[0] as HTMLElement | undefined;
+    if (!card || !firstCard) return 0;
 
-    return card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
+    return firstCard.offsetLeft - card.offsetLeft;
   }, []);
+
+  const getMinX = useCallback(() => {
+    const viewport = viewportRef.current;
+    const track = trackRef.current;
+    if (!viewport || !track) return 0;
+
+    return Math.min(0, viewport.clientWidth - track.scrollWidth);
+  }, []);
+
+  const getMaxIndex = useCallback(() => {
+    const minX = getMinX();
+
+    for (let i = 0; i < fleet.length; i++) {
+      if (getRawX(i) <= minX + 0.5) return i;
+    }
+
+    return fleet.length - 1;
+  }, [getMinX, getRawX]);
 
   const goTo = useCallback(
     (index: number) => {
-      const next = Math.max(0, Math.min(fleet.length - 1, index));
+      const limit = getMaxIndex();
+      setMaxIndex(limit);
+
+      const next = Math.max(0, Math.min(limit, index));
+      activeIndexRef.current = next;
       setActiveIndex(next);
 
       const track = trackRef.current;
       if (!track) return;
 
-      const offset = Math.max(0, getCenteredOffset(next));
-
-      if (prefersReducedMotion()) {
-        track.scrollLeft = offset;
-        return;
-      }
+      const minX = getMinX();
+      const x = Math.max(minX, getRawX(next));
 
       tweenRef.current?.kill();
-      animatingRef.current = true;
-      track.style.scrollSnapType = "none";
-
       tweenRef.current = gsap.to(track, {
-        scrollLeft: offset,
-        duration: 0.75,
+        x,
+        duration: prefersReducedMotion() ? 0 : 0.7,
         ease: "power2.out",
         overwrite: true,
         onComplete: () => {
-          animatingRef.current = false;
-          track.style.scrollSnapType = "";
           tweenRef.current = null;
         },
       });
     },
-    [getCenteredOffset],
+    [getMaxIndex, getMinX, getRawX],
   );
 
   useGSAP(
@@ -94,55 +110,24 @@ export function FleetShowcase({
   );
 
   useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
+    goTo(activeIndexRef.current);
 
-    const onWheel = (event: WheelEvent) => {
-      if (event.shiftKey) return;
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+    const onResize = () => goTo(activeIndexRef.current);
+    window.addEventListener("resize", onResize);
 
-      event.preventDefault();
-      window.scrollBy({ top: event.deltaY });
+    return () => {
+      window.removeEventListener("resize", onResize);
+      tweenRef.current?.kill();
     };
-
-    track.addEventListener("wheel", onWheel, { passive: false });
-    return () => track.removeEventListener("wheel", onWheel);
-  }, []);
-
-  const onScroll = () => {
-    if (animatingRef.current) return;
-
-    const track = trackRef.current;
-    if (!track) return;
-
-    const center = track.scrollLeft + track.clientWidth / 2;
-    let closest = 0;
-    let minDist = Infinity;
-
-    Array.from(track.children).forEach((child, i) => {
-      const el = child as HTMLElement;
-      const mid = el.offsetLeft + el.offsetWidth / 2;
-      const dist = Math.abs(mid - center);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = i;
-      }
-    });
-
-    setActiveIndex((prev) => (prev === closest ? prev : closest));
-  };
+  }, [goTo]);
 
   return (
-    <section ref={containerRef} className="section-padding overflow-hidden">
-      <div className="container-luxury">
+    <section ref={containerRef} className="overflow-hidden py-24 md:py-32">
+      <div className="container-luxury px-6 md:px-10 lg:px-16">
         <div className="fleet-heading mb-12 flex flex-col gap-6 md:mb-16 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="mb-3 text-xs tracking-[0.3em] text-gold uppercase">
-              Hypercar Collection
-            </p>
-            <h2 className="font-display text-4xl text-champagne md:text-5xl lg:text-6xl">
-              {title}
-            </h2>
+            <p className="mb-3 text-xs tracking-[0.3em] text-gold uppercase">Hypercar Collection</p>
+            <h2 className="font-display text-4xl text-champagne md:text-5xl lg:text-6xl">{title}</h2>
             <p className="mt-4 max-w-lg text-champagne/60">{subtitle}</p>
           </div>
 
@@ -162,7 +147,7 @@ export function FleetShowcase({
               size="icon"
               className="border-gold/30 text-champagne hover:bg-gold/10 hover:text-gold"
               onClick={() => goTo(activeIndex + 1)}
-              disabled={activeIndex === fleet.length - 1}
+              disabled={activeIndex >= maxIndex}
               aria-label="Next vehicle"
             >
               <ChevronRight />
@@ -171,26 +156,27 @@ export function FleetShowcase({
         </div>
       </div>
 
-      <div
-        ref={trackRef}
-        onScroll={onScroll}
-        className="scrollbar-none flex snap-x snap-proximity gap-6 overflow-x-auto overscroll-x-contain px-6 pb-4 md:gap-8 md:px-10 lg:px-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]"
-      >
-        {fleet.map((vehicle, i) => (
-          <div
-            key={vehicle.slug}
-            className={cn(
-              "w-[85vw] shrink-0 snap-center transition-[transform,opacity] duration-500 ease-out will-change-transform sm:w-[70vw] md:w-[520px] lg:w-[560px]",
-              i === activeIndex ? "scale-100 opacity-100" : "scale-[0.97] opacity-75",
-            )}
-          >
-            <VehicleCard vehicle={vehicle} active={i === activeIndex} />
-          </div>
-        ))}
+      <div ref={viewportRef} className="overflow-hidden">
+        <div
+          ref={trackRef}
+          className="relative flex w-max gap-6 px-6 pb-4 will-change-transform md:gap-8 md:px-10 lg:px-[max(4rem,calc((100vw-80rem)/2+4rem))]"
+        >
+          {fleet.map((vehicle, i) => (
+            <div
+              key={vehicle.slug}
+              className={cn(
+                "w-[85vw] shrink-0 transition-[transform,opacity] duration-500 ease-out sm:w-[70vw] md:w-[520px] lg:w-[560px]",
+                i === activeIndex ? "scale-100 opacity-100" : "scale-[0.97] opacity-75",
+              )}
+            >
+              <VehicleCard vehicle={vehicle} active={i === activeIndex} />
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="container-luxury mt-8 flex justify-center gap-2">
-        {fleet.map((vehicle, i) => (
+      <div className="container-luxury mt-8 flex justify-center gap-2 px-6 md:px-10 lg:px-16">
+        {fleet.slice(0, maxIndex + 1).map((vehicle, i) => (
           <button
             key={vehicle.slug}
             type="button"
