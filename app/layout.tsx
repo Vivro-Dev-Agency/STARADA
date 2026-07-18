@@ -8,6 +8,7 @@ import { buildJsonLd, buildMetadata } from "@/lib/seo";
 import { siteConfig } from "@/lib/site-config";
 
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -39,19 +40,14 @@ export default function RootLayout({
   const jsonLd = buildJsonLd();
 
   return (
-    <html
-      lang="en"
-      className={`dark ${cormorant.variable} ${dmSans.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`dark ${cormorant.variable} ${dmSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-obsidian font-sans text-champagne">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
         <Toaster theme="dark" position="bottom-right" richColors />
+        <Analytics />
       </body>
     </html>
   );
