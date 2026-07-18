@@ -1,6 +1,12 @@
 # STARADA
 
+![STARADA preview](public/Starada-preview.png)
+
 Ultra-luxury hypercar and supercar rentals in Morocco. White-glove delivery, private concierge, and a curated fleet of extraordinary machines.
+
+**Live demo:** [https://starada.vivro.dev/](https://starada.vivro.dev/)
+
+**Developed by:** [vivro.dev](https://vivro.dev)
 
 ## Stack
 
@@ -28,12 +34,12 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ## Scripts
 
-| Command       | Description              |
-| ------------- | ------------------------ |
-| `npm run dev` | Start local development  |
-| `npm run build` | Production build       |
-| `npm run start` | Serve production build |
-| `npm run lint` | Run ESLint               |
+| Command         | Description             |
+| --------------- | ----------------------- |
+| `npm run dev`   | Start local development |
+| `npm run build` | Production build        |
+| `npm run start` | Serve production build  |
+| `npm run lint`  | Run ESLint              |
 
 ## Project structure
 
@@ -54,13 +60,13 @@ lib/
 
 ## Key routes
 
-| Path           | Purpose                          |
-| -------------- | -------------------------------- |
-| `/`            | Home — hero, fleet preview, CTA  |
-| `/fleet`       | Full fleet showcase              |
-| `/experience`  | Brand story and values           |
-| `/contact`     | Concierge inquiry form           |
-| `/api/og`      | Dynamic social share images      |
+| Path          | Purpose                         |
+| ------------- | ------------------------------- |
+| `/`           | Home — hero, fleet preview, CTA |
+| `/fleet`      | Full fleet showcase             |
+| `/experience` | Brand story and values          |
+| `/contact`    | Concierge inquiry form          |
+| `/api/og`     | Dynamic social share images     |
 
 ## Site config
 
